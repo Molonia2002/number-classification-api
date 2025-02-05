@@ -43,6 +43,10 @@ def get_fun_fact(n):
 	except Exception: 
 		return "Error fetching fun fact."
 
+@app.route("/")
+def home(): 
+	return "Hello, your Flask API is running on Render!"
+
 # API endpoint 
 @app.route('/api/classify-number', methods=['GET'])
 def classify_number():
@@ -80,4 +84,4 @@ def classify_number():
 # Run the app
 if __name__ == "__main__":
 	port = int(os.environ.get("PORT", 5000))
-	serve(app, host="0.0.0.0", port=port)
+	app.run(host="0.0.0.0", port=port, debug=True)
