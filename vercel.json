@@ -1,14 +1,9 @@
 {
 	"version": 2,
-	"builds": [
-		{
-			"src": "app.py",
-			"use": "@vercel/python"
-		}
-	],
 	"routes": [
 		{
-			"src": "/(.*),
+			"src": "/api/classify-number-api",
 			"dest": "app.py"
-	}
-]
+		}
+	]
+}

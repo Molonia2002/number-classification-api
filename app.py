@@ -1,11 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from waitress import serve
-
-app = Flask(__name__)
-
-
-import requests 
+import requests
+ 
 
 app = Flask(__name__) 
 CORS(app) #Enable CORS for all routes 
@@ -28,41 +25,39 @@ def is_perfect(n):
 # Function to check if a number is an Armstrong number 
 def is_armstrong(n): 
 	digits = [int(d) for d in str(n)]
-	num_digits = len(digits) 
-	return sum(d ** num_digits for d in digits) == n
+	power = len(digits) 
+	return sum(d ** power for d in digits) == n
 
 def digit_sum(n): 
 	return sum(int(d) for d in str(n))
  
 
 # Function to calculate the sum of digits
-def get_fun_fact(n): 
-	url = f"http://numberapi.com/{n}/math"
-	response = requests.get(url)
-	return response.text if response.status_code == 200 else "No fun available."
+def get_fun_fact(n):
+	try:  
+		response = requests.get(f"http://numberapi.com/{n}/math?json")
+		if response.status_code == 200:
+			return response.json().get("text", "No fun fact available.")
+		return "No fun available."
+	except Exception: 
+		return "Error fetching fun fact."
 
 # API endpoint 
 @app.route('/api/classify-number', methods=['GET'])
-def classify_number(): 
+def classify_number():
 	number = request.args.get('number')
-	
-	# Input validation 
-	if not number or not number.lstrip('_').isdigit():
-		return jsonify({
-			"number": number if number else "null",
-			"error": True 
-	}), 400
-
-	
-
-	number = int(number) 
+		
+	if not number or not number.isdigit():
+		return jsonify({"error": "Invalid input. Please provide a valid number."}), 400
+ 
+	number = int(number)
 
 	# Determine properties 
 	properties = []
 	if is_armstrong(number):
 		properties.append("armstrong")
 	if number % 2 == 0:
-		properties.append("even")
+		properties.append("odd")
 	else: 
 		properties.append("odd")
  
@@ -77,9 +72,11 @@ def classify_number():
 		"fun_fact": get_fun_fact(number)
 	}
 
-	return jsonify(response), 200
+	return jsonify(response), 200	
+
+
 
 # Run the app
 if __name__ == '__main__': 
 	
-	serve(app, host='0.0.0.0', port=8000)
+	serve(app, host='0.0.0.0', port=5000)
