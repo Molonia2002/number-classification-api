@@ -2,7 +2,7 @@
 	"version": 2,
 	"routes": [
 		{
-			"src": "/api/classify-number-api",
+			"src": "/api/classify-number",
 			"dest": "app.py"
 		}
 	]
