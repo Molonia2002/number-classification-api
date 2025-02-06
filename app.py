@@ -55,8 +55,8 @@ def get_fun_fact(n):
 	else: 
 		return f"{n} is a unique number with interesting properties."
 
-@app.route('/api/classify-number', methods=['GET'])
-def classify():
+@app.route('/api/classify-number/5', methods=['GET'])
+def classify_number(number):
 	"""Handles API requests and returns number classification."""
 	try: 
 		number_str = request.args.get("number")
