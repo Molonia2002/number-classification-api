@@ -91,24 +91,30 @@ def classify_number(n: int) -> dict:
 @app.get("/api/classify-number", response_model=NumberResponse)
 async def classify_number_api(number: int = Query(..., description="The number to classify")):
     """API endpoint to classify numbers."""
-    try:
-        return classify_number(number)
-    except ValueError:
-        raise HTTPException(status_code=400, detail={"number": str(number), "error": True})
+    return classify_number(number)
 
 
 @app.get("/api/classify-number/{number}", response_model=NumberResponse)
 async def classify_number_path(number: int):
     """Alternate API endpoint that allows numbers in the URL path."""
-    try:
-        return classify_number(number)
-    except ValueError:
-        raise HTTPException(status_code=400, detail={"number": str(number), "error": True})
+    return classify_number(number)
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(_, exc: HTTPException):
+async def http_exception_handler(request, exc):
     """Ensures invalid input always returns JSON with status 400."""
     if exc.status_code == 400:
-        return {"number": "invalid", "error": True}
-    return {"error": "Internal Server Error"}, 500
+        return JSONResponse(
+            status_code=400,
+            content={"number": "invalid", "error": True}
+        )
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal Server Error"}
+    )
+
+
+@app.get("/api/classify-number")
+async def invalid_number(number: str = Query(..., description="Invalid number input")):
+    """Handles invalid input formats."""
+    raise HTTPException(status_code=400, detail={"number": number, "error": True})
