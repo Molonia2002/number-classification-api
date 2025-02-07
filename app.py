@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware 
-import httpx
+from pydantic import BaseModel
 import math 
+import requests
 
 app = FastAPI()
 
@@ -13,7 +14,17 @@ app.add_middleware(
 	allow_headers=["*"],
 )
 
-NUMBERS_API_URL = "http://numbersapi.com"
+class NumberResponse(BaseModel):
+	number: int
+	is_prime: bool
+	is_perfect: bool
+	properties: list[str]
+	digit_sum: int
+	fun_fact: str
+
+class ErrorResponse(BaseModel): 
+	number: str
+	error: bool
 
 def is_prime(n: int) -> bool: 
 	"""Check if a number is prime."""
@@ -32,52 +43,53 @@ def is_perfect(n: int) -> bool:
 
 def is_armstrong(n: int) -> bool: 
 	"""Check if a number is an Armstrong (narcissistic) number."""
-	digits = [int(d) for d in str(n)]
+	digits = [int(d) for d in str(abs(n))]
 	power = len(digits)
-	return sum(d ** power for d in digits) == n
+	return sum(d ** power for d in digits) == abs(n)
 
-def get_fun_fact(n: int) -> str: 
+def fetch_fun_fact(n: int) -> str: 
 	"""Fetch a fun fact from the Numbers API."""
 	try: 
-		response = httpx.get(f"{NUMBERS_API_URL}/{n}/math", timeout=5)
+		response = requests.get(f"http://numbersapi.com/{n}/math", timeout=5)
 		if response.status_code == 200: 
 			return response.text
-		return f"No fun fact available for {n}."
-	except Exception: 
-		return f"Could not fetch a fun fact for {n}."
+	except requests.exceptions.RequestException:
+		pass
+	return f"{n} is an interesting number!"
 
 def classify_number(n: int) -> dict: 
 	"""Classify the  number and return its properties."""
 	properties = ["even" if n % 2 == 0 else "odd"]
 
+	if is_prime(n): 
+		properties.append("prime")
+	if is_perfect(n): 
+		properties.append("perfect")
 	if is_armstrong(n):
-		properties.insert(0, "armstrong")
+		properties.append("armstrong")
+
+	digit_sum = sum(int(d) for d in str(abs(n))) 
 
 	return {
-		"number": n, 
-		"is_prime": is_prime(n), 
-		"properties": properties, 
-		"digit_sum": sum(int(d) for d in str(n)), 
-		"fun_fact": get_fun_fact(n) 
+		"number": n,
+		"is_prime": is_prime(n),
+		"is_perfect": bool(is_perfect(n)),
+		"properties": properties,
+		"digit_sum": digit_sum,
+		"fun_fact": fetch_fun-fact(n) 
 	}
 
-@app.get("/api/classify-number") 
+@app.get("/api/classify-number", response_model=NumberResponse) 
 async def classify_number_api(number: int = Query(..., description="The number to classify")):
 	"""API endpoint to classify numbers."""
-	try: 
-		return classify_number(number)
-	except Exception as e: 
-		raise HTTPException(status_code=500, detail=str(e))
+	return classify_number(number)
 
-@app.get("/api/classify-number/{number}")
+@app.get("/api/classify-number/{number}", response_model=NumberResponse)
 async def classify_number_path(number: int): 
 	"""Alternate API endpoint that allows numbers in the  URL path."""
-	try: 
-		return classify_number(number)
-	except Exception as e: 
-		raise HTTPException(status_code=500, detail=str(e))
+	return classify_number(number)
 
-@app.get("/api/classify-number", response_model=dict)
-async def invalid_number(number: str = Query(..., description="Invalid number input")):
+@app.exception_handler(HTTPException)
+async def invalid_number_handler(_, exc: HTTPException):
 	"""Handles invalid input formats."""
-	return {"number": number, "error": True}
+	return {"number": str(exc.detail), "error": True}
